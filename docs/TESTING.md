@@ -1,0 +1,5 @@
+# Testing
+- `npx vitest run` – unit + security tests (88): URL parsing/heuristics, lookalikes, redaction, message analyzer (harmless, urgent-only, English/Urdu/Roman Urdu, URLs), QR classification, email headers, domain input, scoring rules, provider honesty, PDF generation, SSRF (IP classification, obfuscated IPs, metadata, rebinding, redirect revalidation/limits/timeouts), crypto.
+- `node tests/e2e/smoke.mjs` – 94 HTTP checks against a running server: public SEO pages, protected routes, guest scanning, rate limiting, validation errors, signup/login, history, exports (real PDF), share/revoke, cross-user isolation, CSRF, API keys, bulk, account deletion, provider status, SSRF via API.
+- Fixtures: `*.fixture.scamlens.test` is a synthetic, labelled threat host; QR payloads and messages in tests are fictional.
+- Not automated / not run: browser E2E (Playwright), visual/mobile screenshots, Lighthouse, camera scanning, live Web Risk/URLhaus/Resend (no credentials), RLS isolation on Supabase. QR image decoding runs in the browser (ZXing) and was not covered by automated tests; its classification logic is unit-tested.

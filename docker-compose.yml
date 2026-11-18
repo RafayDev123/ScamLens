@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: app_db }
+    volumes: [dbdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres"], interval: 5s, retries: 10 }
+  web:
+    build: .
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/app_db
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      REDIRECT_INSPECTION_MODE: worker
+      REDIRECT_WORKER_URL: http://redirect-worker:8787
+      REDIRECT_WORKER_SECRET: ${REDIRECT_WORKER_SECRET:?set REDIRECT_WORKER_SECRET}
+      ENABLE_TEST_FIXTURES: "false"
+    env_file: [{ path: .env, required: false }]
+    ports: ["3000:3000"]
+  redirect-worker:
+    build: { context: ., dockerfile: Dockerfile.worker }
+    environment: { REDIRECT_WORKER_SECRET: "${REDIRECT_WORKER_SECRET:?set REDIRECT_WORKER_SECRET}" }
+    # Production: attach to a network whose firewall only allows outbound 80/443 to the public internet
+    # and DROPS RFC1918, link-local (169.254.0.0/16) and metadata ranges. The app also validates in code.
+    networks: [egress]
+networks:
+  egress: {}
+volumes:
+  dbdata: {}
