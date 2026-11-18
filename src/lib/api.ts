@@ -3,7 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { ZodError, type ZodType } from "zod";
 import { db } from "@/db";
 import { apiKeys, usageEvents, users } from "@/db/schema";
-import { GUEST_COOKIE, SESSION_COOKIE, cookieOptions, userFromToken, type SessionUser } from "@/lib/auth";
+import { GUEST_COOKIE, SESSION_COOKIE, cookieOptions, roleForEmail, userFromToken, type SessionUser } from "@/lib/auth";
 import { randomBytes } from "node:crypto";
 import { randomToken, sha256 } from "@/lib/security/crypto";
 import { clientIp, hit, ipHash } from "@/lib/security/ratelimit";
@@ -77,7 +77,7 @@ export function route(name: string, handler: Handler, opts: RouteOptions = {}) {
         apiKeyId = row.id;
         void db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, row.id)).catch(() => undefined);
         const [u] = await db.select().from(users).where(eq(users.id, row.userId)).limit(1);
-        if (u) user = { id: u.id, email: u.email, displayName: u.displayName, role: u.role === "admin" ? "admin" : "user" };
+        if (u) user = { id: u.id, email: u.email, displayName: u.displayName, role: roleForEmail(u.email) };
       } else {
         user = await userFromToken(req.cookies.get(SESSION_COOKIE)?.value);
       }

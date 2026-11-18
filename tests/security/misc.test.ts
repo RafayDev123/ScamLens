@@ -1,10 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { roleForEmail } from "@/lib/auth";
 import { hashPassword, randomToken, sha256, verifyPassword } from "@/lib/security/crypto";
 import { reportToPdf, pdfSafe } from "@/lib/report-pdf";
 import { buildReport } from "@/lib/analysis/report";
 import { redactText } from "@/lib/security/redact";
 import { checkReputation, providerOverview } from "@/lib/providers";
 import { scanUrl, scanMessage, scanQr } from "@/lib/services/scan-service";
+
+const originalAdminEmails = process.env.ADMIN_EMAILS;
+afterEach(() => {
+  if (originalAdminEmails === undefined) delete process.env.ADMIN_EMAILS;
+  else process.env.ADMIN_EMAILS = originalAdminEmails;
+});
+
+describe("admin allowlist", () => {
+  it("uses the allowlist as the source of truth for admin roles", () => {
+    process.env.ADMIN_EMAILS = "admin@example.com, allowed@example.com";
+    expect(roleForEmail("ALLOWED@EXAMPLE.COM")).toBe("admin");
+    expect(roleForEmail("other@example.com")).toBe("user");
+  });
+});
 
 describe("crypto", () => {
   it("hashes and verifies passwords; tokens are unique and long", async () => {

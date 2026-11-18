@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { ApiError, readJson, route } from "@/lib/api";
 import { db } from "@/db";
 import { auditLogs, userPreferences, users } from "@/db/schema";
-import { createSession, isAdminEmail, validatePassword } from "@/lib/auth";
+import { createSession, roleForEmail, validatePassword } from "@/lib/auth";
 import { hashPassword } from "@/lib/security/crypto";
 import { ipHash } from "@/lib/security/ratelimit";
 import { registerSchema } from "@/lib/schemas";
@@ -20,7 +20,7 @@ export const POST = route(
     if (existing) throw new ApiError(409, "email_in_use", "An account with this email already exists. Try signing in.");
     const [u] = await db
       .insert(users)
-      .values({ email, passwordHash: await hashPassword(body.password), displayName: body.displayName?.trim() || null, role: isAdminEmail(email) ? "admin" : "user" })
+      .values({ email, passwordHash: await hashPassword(body.password), displayName: body.displayName?.trim() || null, role: roleForEmail(email) })
       .returning({ id: users.id, email: users.email, role: users.role });
     await db.insert(userPreferences).values({ userId: u.id });
     await db.insert(auditLogs).values({ userId: u.id, action: "auth.register", ipHash: ipHash(ip) });

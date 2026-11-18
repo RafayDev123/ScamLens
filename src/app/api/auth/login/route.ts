@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { ApiError, readJson, route } from "@/lib/api";
 import { db } from "@/db";
 import { auditLogs, users } from "@/db/schema";
-import { createSession, isAdminEmail } from "@/lib/auth";
+import { createSession, roleForEmail } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/security/crypto";
 import { ipHash } from "@/lib/security/ratelimit";
 import { loginSchema } from "@/lib/schemas";
@@ -24,9 +24,8 @@ export const POST = route(
       await db.insert(auditLogs).values({ userId: u?.id ?? null, action: "auth.login_failed", ipHash: ipHash(ip) }).catch(() => undefined);
       throw new ApiError(401, "invalid_credentials", "Email or password is incorrect.");
     }
-    let role = u.role;
-    if (isAdminEmail(email) && role !== "admin") {
-      role = "admin";
+    const role = roleForEmail(email);
+    if (u.role !== role) {
       await db.update(users).set({ role }).where(eq(users.id, u.id));
     }
     await db.insert(auditLogs).values({ userId: u.id, action: "auth.login", ipHash: ipHash(ip) });

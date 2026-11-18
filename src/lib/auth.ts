@@ -29,6 +29,10 @@ export function isAdminEmail(email: string): boolean {
     .includes(email.toLowerCase());
 }
 
+export function roleForEmail(email: string): "user" | "admin" {
+  return isAdminEmail(email) ? "admin" : "user";
+}
+
 export async function createSession(userId: string): Promise<void> {
   const token = randomToken(32);
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
@@ -52,7 +56,7 @@ export async function userFromToken(token: string | undefined): Promise<SessionU
     .where(and(eq(sessions.tokenHash, sha256(token)), gt(sessions.expiresAt, new Date())))
     .limit(1);
   if (!row) return null;
-  return { ...row, role: row.role === "admin" ? "admin" : "user" };
+  return { ...row, role: roleForEmail(row.email) };
 }
 
 /** Current signed-in user for server components / route handlers (deduplicated per request). */
